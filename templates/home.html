@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Home - Book Library</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body>
+    <header>
+      <div class="header-container">
+        <a href="{{ url_for('home_page') }}" class="library-title">
+            <h1>My Book Library 📚</h1>
+        </a>
+        <div class="header-right">
+          <a href="{{ url_for('add_book') }}" class="add-button">Add a book</a>
+          <a href="{{ url_for('add_author') }}" class="add-button">Add an author</a>
+          <!-- Sorting Dropdown -->
+          <form method="GET" action="{{ url_for('home_page') }}">
+            <select name="sort" class="sort-dropdown" onchange="this.form.submit()">
+              <option value="author" {{ 'selected' if sort == 'author' else '' }}>Sort by Author</option>
+              <option value="title" {{ 'selected' if sort == 'title' else '' }}>Sort by Title</option>
+            </select>
+            <input type="hidden" name="search" value="{{ search | default('') }}">
+          </form>
+        </div>
+      </div>
+    </header>
+
+    <!-- Search Form Section -->
+    <section class="search-section">
+      <form method="GET" class="search-sort-form">
+        <div class="input-group">
+          <input
+            id="search"
+            name="search"
+            type="text"
+            value="{{ search | default('') }}"
+            placeholder="Search books..."
+          />
+          <button type="submit" class="search-button">Search</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Search Results Section -->
+    {% if search %}
+    <section class="search-result-container">
+        {% for book, author, cover in books %}
+        <div class="book-card">
+          <img
+            src="{{ cover or 'https://via.placeholder.com/150x200?text=No+Cover' }}"
+            alt="{{ book.title }} cover"
+            class="book-cover"
+          />
+          <h3>
+            <a href="{{ url_for('book_detail', book_id=book.id) }}">{{ book.title }}</a>
+          </h3>
+          <p>{{ author.name }}</p>
+          <form
+            action="{{ url_for('delete_book', book_id=book.id) }}"
+            method="POST"
+            class="delete-form"
+          >
+            <button type="submit">Delete</button>
+          </form>
+        </div>
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    <!-- Book Grid (for displaying all books) -->
+{% if not search %}
+<main>
+    <div class="scroll-container">
+        <button class="scroll-button left">&#10094;</button>
+        <div class="book-grid">
+            {% for book, author, cover in books %}
+            <div class="book-card">
+                <img
+                    src="{{ cover or 'https://via.placeholder.com/150x200?text=No+Cover' }}"
+                    alt="{{ book.title }} cover"
+                    class="book-cover"
+                />
+                <h3>
+                    <a href="{{ url_for('book_detail', book_id=book.id) }}">{{ book.title }}</a>
+                </h3>
+                <p>{{ author.name }}</p>
+                <form
+                    action="{{ url_for('delete_book', book_id=book.id) }}"
+                    method="POST"
+                    class="delete-form"
+                  >
+                    <button type="submit">Delete</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+        <button class="scroll-button right">&#10095;</button>
+    </div>
+</main>
+{% endif %}
+
+    <footer>
+      <p>© {{ current_year }} Book Library</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+  </body>
+</html>

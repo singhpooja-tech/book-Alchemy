@@ -70,6 +70,108 @@ def add_author():
     if request.method == "GET":
         return render_template("add_author.html")
 
+    @app.route("/add_book", methods=["GET", "POST"])
+    def add_book():
+        """
+        Handles the creation of a new book. The function accepts both GET and POST requests.
+        - GET: Renders the form for adding a new book.
+        - POST: Processes the form submission, validates the input, and adds the book to the database.
+        Returns:
+            - Rendered HTML templates based on the success or failure of adding the book.
+        """
+        if request.method == "POST":
+            isbn = request.form.get('isbn', '').strip()
+            title = request.form.get('title', '').strip()
+            publication_year = request.form.get('publication_year', '').strip()
+            author_id = request.form.get('author_id')
+            cover_url = request.form.get('cover_url', '').strip()
+            description = request.form.get('description', '').strip()
+
+            # Validate title: it must not be empty and should contain letters
+            if not title or not any(char.isalpha() for char in title):
+                warning_message = "Book title is required and must contain letters."
+                return render_template("add_book.html",
+                                       authors=Author.query.all(),
+                                       warning_message=warning_message)
+
+            # Validate ISBN: It should contain only digits and be 10 or 13 digits long
+            if not isbn.isdigit() or len(isbn) not in [10, 13]:
+                warning_message = "Invalid ISBN. It should be 10 or 13 digits."
+                return render_template("add_book.html",
+                                       authors=Author.query.all(),
+                                       warning_message=warning_message)
+
+            # Validate publication year: It should be a valid year
+            current_year = datetime.now().year
+            if publication_year:
+                if not publication_year.isdigit() or not (1000 <= int(publication_year) <= current_year):
+                    warning_message = f"Invalid publication year. Must be between 1000 and {current_year}."
+                    return render_template("add_book.html",
+                                           authors=Author.query.all(),
+                                           warning_message=warning_message)
+
+            book = Book(
+                author_id=author_id,
+                isbn=isbn,
+                title=title,
+                publication_year=int(publication_year) if publication_year else None,
+                cover_url=cover_url,
+                description=description
+            )
+
+            try:
+                db.session.add(book)
+                db.session.commit()
+                success_message = "Book added successfully!"
+                return render_template("add_book.html",
+                                       authors=Author.query.all(),
+                                       success_message=success_message)
+            except SQLAlchemyError as e:
+                db.session.rollback()
+                warning_message = f"Error adding book to the database: {e}"
+                return render_template("add_book.html",
+                                       authors=Author.query.all(),
+                                       warning_message=warning_message)
+
+        if request.method == "GET":
+            return render_template("add_book.html", authors=Author.query.all())
+
+
+    @app.route("/", methods=["GET"])
+    def home_page():
+        """
+        Displays the homepage with a list of books. The books can be sorted by author or title,
+        and a search functionality is available to filter books by title.
+        Returns:
+            - Rendered homepage with books, sorted and/or filtered based on the user's input.
+        """
+        sort = request.args.get('sort', 'author')
+        search = request.args.get('search') or ""
+        message = request.args.get('message')
+
+        if search:
+            books = db.session.query(Book, Author).join(Author) \
+                .filter(Book.title.like(f"%{search}%")) \
+                .order_by(Book.title).all()
+            if not books:
+                return render_template("home.html", books=[], search=search,
+                                       message="No books found matching your search.")
+        else:
+            if sort == 'author':
+                books = db.session.query(Book, Author).join(Author).order_by(Author.name).all()
+            elif sort == 'title':
+                books = db.session.query(Book, Author).join(Author).order_by(Book.title).all()
+            else:
+                books = db.session.query(Book, Author).join(Author).order_by(Author.name).all()
+
+        books_with_cover = []
+        for book, author in books:
+            cover_url, _ = fetch_book_details(book.isbn)
+            books_with_cover.append((book, author, cover_url))
+
+        return render_template("home.html", books=books_with_cover,
+                               sort=sort, search=search, message=message)
+
 # Create the database tables. Run once
 # with app.app_context():
 #   db.create_all()

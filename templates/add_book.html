@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Add Book</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">  <!-- Make sure to link the main stylesheet -->
+  </head>
+  <body>
+
+    <header>
+      <div class="header-container">
+        <a href="{{ url_for('home_page') }}" class="library-title">
+            <h1>My Book Library 📚</h1>
+        </a>
+        <div class="header-right">
+          <a href="{{ url_for('add_book') }}" class="add-button">Add a book</a>
+          <a href="{{ url_for('add_author') }}" class="add-button">Add an author</a>
+        </div>
+      </div>
+    </header>
+
+  <!-- Success message -->
+  {% if success_message %}
+    <p class="alert alert-success">{{ success_message }}</p>
+  {% endif %}
+
+  <!-- Warning message -->
+  {% if warning_message %}
+    <p class="alert alert-warning">{{ warning_message }}</p>
+  {% endif %}
+
+  <!-- Form for adding a book -->
+  <form action="/add_book" method="POST" class="styled-form">
+    <label for="isbn">ISBN:</label>
+    <input type="text" id="isbn" name="isbn"><br><br>
+
+    <label for="title">Book Title:</label>
+    <input type="text" id="title" name="title" required><br><br>
+
+    <label for="publication_year">Publication Year:</label>
+    <input type="text" id="publication_year" name="publication_year" required><br><br>
+
+    <!-- Dropdown for selecting author -->
+    <label for="author_id">Select Author:</label>
+    <select id="author_id" name="author_id" required>
+        <option value="" disabled selected>Select an author</option>
+        {% for author in authors %}
+            <option value="{{ author.id }}">{{ author.name }}</option>
+        {% endfor %}
+    </select><br><br>
+
+    <input type="submit" value="Add Book">
+  </form>
+
+  </body>
+</html>
