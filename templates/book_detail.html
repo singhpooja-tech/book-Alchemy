@@ -1,10 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>{{ book.title }} - Details</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body>
 
-</body>
+    <header>
+      <div class="header-container">
+        <a href="{{ url_for('home_page') }}" class="library-title">
+            <h1>My Book Library 📚</h1>
+        </a>
+        <div class="header-right">
+          <a href="{{ url_for('add_book') }}" class="add-button">Add a book</a>
+          <a href="{{ url_for('add_author') }}" class="add-button">Add an author</a>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="detail-container">
+        <div class="book-info">
+          <h1>{{ book.title }}</h1>
+          <img
+            src="{{ cover_url if cover_url else 'https://via.placeholder.com/150x200?text=No+Cover' }}"
+            alt="{{ book.title }} cover"
+          />
+
+          <p class="author-info">
+            <strong>Written by:</strong> {{ author.name }}
+          </p>
+          <p class="author-dates">
+            <span class="date">
+              ({{ author.birth_date.strftime('%d.%m.%Y') if author.birth_date else 'Unknown' }}
+            </span>
+            {% if author.date_of_death %}
+              - <span class="date">{{ author.date_of_death.strftime('%d.%m.%Y') }})</span>
+            {% else %}
+              - Present
+            {% endif %}
+          </p>
+
+          <p><strong>Publication Year:</strong> {{ book.publication_year }}</p>
+          <p><strong>ISBN:</strong> {{ book.isbn }}</p>
+
+          <h3>Description</h3>
+          <p>{{ description if description else 'No description available.' }}</p>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <p>© {{ current_year }} Book Library</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+  </body>
 </html>

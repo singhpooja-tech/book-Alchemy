@@ -70,6 +70,57 @@ def add_author():
     if request.method == "GET":
         return render_template("add_author.html")
 
+    def fetch_book_details(isbn):
+        """
+        Fetches book details, including the cover image URL and description, using the Google Books API.
+        Args:
+            isbn (str): The ISBN of the book to fetch details for.
+        Returns:
+            tuple: A tuple containing:
+                - cover_url (str or None): The URL of the book's cover image if available, otherwise None.
+                - description (str or None): The description of the book if available, otherwise None.
+        """
+        if not isbn or not isbn.isdigit() or len(isbn) not in (10, 13):
+            print(f"Invalid ISBN provided: {isbn}")
+            return None, None
+
+        api_url = f"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}"
+
+        try:
+            response = requests.get(api_url, timeout=15)
+            response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+        except requests.exceptions.Timeout:
+            print(f"Request timed out while fetching details for ISBN: {isbn}")
+            return None, None
+        except requests.exceptions.ConnectionError:
+            print(f"Connection error while fetching details for ISBN: {isbn}")
+            return None, None
+        except requests.exceptions.HTTPError as e:
+            print(f"HTTP error occurred: {e}")
+            return None, None
+        except requests.exceptions.RequestException as e:
+            print(f"An error occurred while fetching details for ISBN: {isbn}. Error: {e}")
+            return None, None
+
+        try:
+            data = response.json()
+        except ValueError:
+            print(f"Error decoding JSON response for ISBN: {isbn}")
+            return None, None
+
+        if "items" not in data or not data["items"]:
+            print(f"No book found for ISBN: {isbn}")
+            return None, None
+
+        try:
+            volume_info = data["items"][0]["volumeInfo"]
+            cover_url = volume_info.get("imageLinks", {}).get("thumbnail", None)
+            description = volume_info.get("description", None)
+            return cover_url, description
+        except KeyError:
+            print(f"Unexpected data structure in API response for ISBN: {isbn}")
+            return None, None
+
     @app.route("/add_book", methods=["GET", "POST"])
     def add_book():
         """
@@ -206,6 +257,31 @@ def add_author():
             db.session.rollback()
             print(f"SQLAlchemyError: {e}")
             return redirect(url_for('home_page', message="An unexpected error occurred. Please try again."))
+
+    @app.route('/book/<int:book_id>')
+    def book_detail(book_id):
+        """
+        Displays detailed information about a specific book.
+        Args:
+            book_id (int): The ID of the book to retrieve details for.
+        Returns:
+            - Rendered 'book_detail.html' template with:
+                - `book`: The book object retrieved from the database.
+                - `author`: The author object retrieved from the database.
+                - `cover_url`: The book cover URL fetched from the Google Books API.
+                - `description`: The book description fetched from the Google Books API.
+        """
+        book = Book.query.get_or_404(book_id)
+        cover_url, description = fetch_book_details(book.isbn)
+        author = book.author
+
+        return render_template(
+            'book_detail.html',
+            book=book,
+            author=author,
+            cover_url=cover_url,
+            description=description
+        )
 
 # Create the database tables. Run once
 # with app.app_context():
