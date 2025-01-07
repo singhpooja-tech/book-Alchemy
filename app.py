@@ -172,6 +172,41 @@ def add_author():
         return render_template("home.html", books=books_with_cover,
                                sort=sort, search=search, message=message)
 
+    @app.route("/book/<int:book_id>/delete", methods=["POST"])
+    def delete_book(book_id):
+        """
+        Deletes a book from the database and removes the author if they no longer have any books.
+        Args:
+            book_id (int): The ID of the book to be deleted.
+        Returns:
+            - Redirects to the homepage with a success or error message.
+        """
+        try:
+            book_to_delete = db.session.query(Book).filter(Book.id == book_id).first()
+            if not book_to_delete:
+                return redirect(url_for('home_page', message=f"Book with ID {book_id} not found!"))
+
+            book_title = book_to_delete.title
+            author_id = book_to_delete.author_id
+
+            db.session.query(Book).filter(Book.id == book_id).delete()
+
+            # Check if the author has other books, and delete the author if none exist
+            if not db.session.query(Book).filter(Book.author_id == author_id).count():
+                db.session.query(Author).filter(Author.id == author_id).delete()
+
+            db.session.commit()
+            return redirect(url_for('home_page', message=f"Book '{book_title}' deleted successfully!"))
+
+        except IntegrityError as e:
+            db.session.rollback()
+            print(f"IntegrityError: {e}")
+            return redirect(url_for('home_page', message="Database integrity error occurred during deletion."))
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            print(f"SQLAlchemyError: {e}")
+            return redirect(url_for('home_page', message="An unexpected error occurred. Please try again."))
+
 # Create the database tables. Run once
 # with app.app_context():
 #   db.create_all()
