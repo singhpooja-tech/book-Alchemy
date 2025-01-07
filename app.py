@@ -10,4 +10,4 @@ db.init_app(app)
 
 # Create the database tables. Run once
 # with app.app_context():
-#    db.create_all()
+#   db.create_all()
